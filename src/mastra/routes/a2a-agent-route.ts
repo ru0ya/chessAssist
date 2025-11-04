@@ -1,39 +1,54 @@
-import { registerApiRoute } from '@mastra/core/server';
 import { randomUUID } from 'crypto';
+import type { Mastra } from '@mastra/core/mastra';
 
-export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
-  method: 'POST',
-  handler: async (c) => {
+/**
+ * Creates an A2A (Agent-to-Agent) handler for JSON-RPC 2.0 compliant agent communication
+ * Endpoint: POST /a2a/agent/:agentId
+ * 
+ * @param mastra - Mastra instance with registered agents
+ * @returns Handler function for A2A requests
+ */
+export function createA2AHandler(mastra: Mastra) {
+  return async (req: Request, agentId: string): Promise<Response> => {
     try {
-      const mastra = c.get('mastra');
-      const agentId = c.req.param('agentId');
-
       // Parse JSON-RPC 2.0 request
-      const body = await c.req.json();
+      const body = await req.json();
       const { jsonrpc, id: requestId, method, params } = body;
 
       // Validate JSON-RPC 2.0 format
       if (jsonrpc !== '2.0' || !requestId) {
-        return c.json({
-          jsonrpc: '2.0',
-          id: requestId || null,
-          error: {
-            code: -32600,
-            message: 'Invalid Request: jsonrpc must be "2.0" and id is required'
+        return new Response(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: requestId || null,
+            error: {
+              code: -32600,
+              message: 'Invalid Request: jsonrpc must be "2.0" and id is required'
+            }
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
           }
-        }, 400);
+        );
       }
 
       const agent = mastra.getAgent(agentId);
       if (!agent) {
-        return c.json({
-          jsonrpc: '2.0',
-          id: requestId,
-          error: {
-            code: -32602,
-            message: `Agent '${agentId}' not found` 
+        return new Response(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: requestId,
+            error: {
+              code: -32602,
+              message: `Agent '${agentId}' not found` 
+            }
+          }),
+          {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
           }
-        }, 404);
+        );
       }
 
       // Extract messages from params
@@ -100,38 +115,50 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
       ];
 
       // Return A2A-compliant response
-      return c.json({
-        jsonrpc: '2.0',
-        id: requestId,
-        result: {
-          id: taskId || randomUUID(),
-          contextId: contextId || randomUUID(),
-          status: {
-            state: 'completed',
-            timestamp: new Date().toISOString(),
-            message: {
-              messageId: randomUUID(),
-              role: 'agent',
-              parts: [{ kind: 'text', text: agentText }],
-              kind: 'message'
-            }
-          },
-          artifacts,
-          history,
-          kind: 'task'
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: requestId,
+          result: {
+            id: taskId || randomUUID(),
+            contextId: contextId || randomUUID(),
+            status: {
+              state: 'completed',
+              timestamp: new Date().toISOString(),
+              message: {
+                messageId: randomUUID(),
+                role: 'agent',
+                parts: [{ kind: 'text', text: agentText }],
+                kind: 'message'
+              }
+            },
+            artifacts,
+            history,
+            kind: 'task'
+          }
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
         }
-      });
+      );
 
     } catch (error: any) {
-      return c.json({
-        jsonrpc: '2.0',
-        id: null,
-        error: {
-          code: -32603,
-          message: 'Internal error',
-          data: { details: error?.message || 'Unknown error' }
+      return new Response(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32603,
+            message: 'Internal error',
+            data: { details: error?.message || 'Unknown error' }
+          }
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
         }
-      }, 500);
+      );
     }
-  }
-});
+  };
+}
