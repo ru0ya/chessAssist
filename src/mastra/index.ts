@@ -9,7 +9,7 @@ import { strategicAgent } from './agents/strategic-agent';
 import { openingAgent } from './agents/opening-agent';
 import { endgameAgent } from './agents/endgame-agent';
 import { toolCallAppropriatenessScorer, completenessScorer, chessNotationScorer } from './scorers/chess-scorer';
-import { a2aAgentRoute } from './routes/a2a-agent-route';
+import { createA2AHandler } from './routes/a2a-agent-route';
 
 export const mastra = new Mastra({
   agents: { 
@@ -39,5 +39,7 @@ export const mastra = new Mastra({
   },
 });
 
-// Export A2A route for agent-to-agent communication
-export { a2aAgentRoute };
+// Export A2A handler for agent-to-agent communication
+// Usage: const handler = createA2AHandler(mastra);
+// Then: handler(request, agentId)
+export { createA2AHandler };

@@ -158,33 +158,35 @@ const endgame = await mastra.agents.endgameAgent.chat({
 
 ## 🔌 A2A Protocol API
 
-The system includes a **JSON-RPC 2.0 compliant endpoint** for programmatic agent communication:
+The system includes a **JSON-RPC 2.0 compliant handler** for programmatic agent communication:
 
-### Endpoint
-```
-POST /a2a/agent/:agentId
-```
+### Usage
 
-### Example Request
-```bash
-curl -X POST http://localhost:4111/a2a/agent/tacticalAgent \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "req-001",
-    "method": "generate",
-    "params": {
-      "message": {
-        "role": "user",
-        "parts": [
-          {
-            "kind": "text",
-            "text": "Find tactics in this position"
-          }
-        ]
+```typescript
+import { mastra, createA2AHandler } from './src/mastra/index';
+
+// Create the A2A handler
+const a2aHandler = createA2AHandler(mastra);
+
+// Use in your server (example with standard fetch API)
+const request = new Request('http://localhost:4111/a2a', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'req-001',
+    method: 'generate',
+    params: {
+      message: {
+        role: 'user',
+        parts: [{ kind: 'text', text: 'Analyze this position' }]
       }
     }
-  }'
+  })
+});
+
+// Call handler with agent ID
+const response = await a2aHandler(request, 'tacticalAgent');
 ```
 
 ### Available Agents via API
@@ -195,7 +197,29 @@ curl -X POST http://localhost:4111/a2a/agent/tacticalAgent \
 - `endgameAgent` - Endgame technique
 - `chessAgent` - General knowledge
 
-See **[A2A Protocol Documentation](A2A_PROTOCOL.md)** for complete API reference, examples, and client implementations.
+### Integration Example
+
+```typescript
+// Express.js example
+import express from 'express';
+import { mastra, createA2AHandler } from './src/mastra/index';
+
+const app = express();
+const a2aHandler = createA2AHandler(mastra);
+
+app.post('/a2a/agent/:agentId', async (req, res) => {
+  const request = new Request('http://localhost' + req.url, {
+    method: 'POST',
+    headers: req.headers as any,
+    body: JSON.stringify(req.body)
+  });
+  
+  const response = await a2aHandler(request, req.params.agentId);
+  const data = await response.json();
+  
+  res.status(response.status).json(data);
+});
+```
 
 ## 🛠️ Technical Stack
 
@@ -227,7 +251,6 @@ chessAssist/
 │   │   └── chess-scorer.ts      # Response scoring
 │   └── index.ts             # Configuration
 ├── A2A_ARCHITECTURE.md      # Full technical docs
-├── A2A_PROTOCOL.md          # A2A endpoint API reference
 ├── A2A_QUICK_START.md       # Quick reference
 ├── A2A_USAGE_EXAMPLES.md    # Code examples
 └── A2A_SUMMARY.md           # Implementation summary
@@ -236,7 +259,6 @@ chessAssist/
 ## 📚 Documentation
 
 - **[A2A Architecture](A2A_ARCHITECTURE.md)** - Complete technical documentation
-- **[A2A Protocol API](A2A_PROTOCOL.md)** - JSON-RPC 2.0 endpoint reference
 - **[Quick Start Guide](A2A_QUICK_START.md)** - Fast reference for common tasks
 - **[Usage Examples](A2A_USAGE_EXAMPLES.md)** - Practical code examples
 - **[Implementation Summary](A2A_SUMMARY.md)** - What was built and why
