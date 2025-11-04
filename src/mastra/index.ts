@@ -9,7 +9,10 @@ import { strategicAgent } from './agents/strategic-agent';
 import { openingAgent } from './agents/opening-agent';
 import { endgameAgent } from './agents/endgame-agent';
 import { toolCallAppropriatenessScorer, completenessScorer, chessNotationScorer } from './scorers/chess-scorer';
-import { createA2AHandler } from './routes/a2a-agent-route';
+import { a2aAgentRoute } from './routes/a2a-agent-route';
+import { chessAnalysisWorkflow } from './workflows/chess-analysis-workflow';
+import { chessLearningWorkflow } from './workflows/chess-learning-workflow';
+import { gameReviewWorkflow } from './workflows/game-review-workflow';
 
 export const mastra = new Mastra({
   agents: { 
@@ -19,6 +22,11 @@ export const mastra = new Mastra({
     strategicAgent,  // Strategic/positional specialist
     openingAgent,    // Opening theory specialist
     endgameAgent     // Endgame specialist
+  },
+  workflows: {
+    chessAnalysisWorkflow,  // Analyzes positions and provides strategic advice
+    chessLearningWorkflow,  // Creates educational content from famous games
+    gameReviewWorkflow,     // Reviews entire games for mistakes and improvements
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, chessNotationScorer },
   storage: new LibSQLStore({
@@ -39,7 +47,7 @@ export const mastra = new Mastra({
   },
 });
 
-// Export A2A handler for agent-to-agent communication
-// Usage: const handler = createA2AHandler(mastra);
-// Then: handler(request, agentId)
-export { createA2AHandler };
+// Export A2A route for manual registration in server setup
+// The route provides JSON-RPC 2.0 compliant endpoint at: POST /a2a/agent/:agentId
+// Access any agent via: POST /a2a/agent/chessAgent (or coachAgent, tacticalAgent, etc.)
+export { a2aAgentRoute };
